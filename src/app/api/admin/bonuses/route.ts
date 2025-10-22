@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     const sort = searchParams.get('sort') ?? 'createdAt';
     const order = searchParams.get('order') ?? 'desc';
 
-    let query = db.select().from(bonuses);
+    const baseQuery = db.select().from(bonuses);
 
     // Build conditions array
     const conditions = [];
@@ -61,10 +61,7 @@ export async function GET(request: NextRequest) {
     // Search by name or code
     if (search) {
       conditions.push(
-        or(
-          like(bonuses.name, `%${search}%`),
-          like(bonuses.code, `%${search}%`)
-        )
+        or(like(bonuses.name, `%${search}%`), like(bonuses.code, `%${search}%`))
       );
     }
 
@@ -85,24 +82,24 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(bonuses.isActive, isActive));
     }
 
-    // Apply all conditions
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
+    // Apply conditions safely
+    const filteredQuery =
+      conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
 
     // Apply sorting
-    if (sort === 'createdAt') {
-      query = order === 'asc' 
-        ? query.orderBy(asc(bonuses.createdAt))
-        : query.orderBy(desc(bonuses.createdAt));
-    } else if (sort === 'amount') {
-      query = order === 'asc'
-        ? query.orderBy(asc(bonuses.amount))
-        : query.orderBy(desc(bonuses.amount));
-    }
+    const sortedQuery =
+      sort === 'createdAt'
+        ? order === 'asc'
+          ? filteredQuery.orderBy(asc(bonuses.createdAt))
+          : filteredQuery.orderBy(desc(bonuses.createdAt))
+        : sort === 'amount'
+        ? order === 'asc'
+          ? filteredQuery.orderBy(asc(bonuses.amount))
+          : filteredQuery.orderBy(desc(bonuses.amount))
+        : filteredQuery;
 
     // Apply pagination
-    const results = await query.limit(limit).offset(offset);
+    const results = await sortedQuery.limit(limit).offset(offset);
 
     return NextResponse.json(results, { status: 200 });
   } catch (error) {
@@ -114,6 +111,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// -------------------- POST --------------------
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -250,6 +248,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// -------------------- PUT --------------------
 export async function PUT(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -293,7 +292,7 @@ export async function PUT(request: NextRequest) {
 
     const updates: Record<string, any> = {};
 
-    // Validate and add name
+    // Validate and add fields (name, code, type, numeric fields, dates, isActive, description)
     if (name !== undefined) {
       if (typeof name !== 'string' || name.trim() === '') {
         return NextResponse.json(
@@ -304,7 +303,6 @@ export async function PUT(request: NextRequest) {
       updates.name = name.trim();
     }
 
-    // Validate and add code
     if (code !== undefined) {
       if (typeof code !== 'string' || code.trim() === '') {
         return NextResponse.json(
@@ -313,7 +311,7 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      // Check code uniqueness (excluding current bonus)
+      // Check uniqueness excluding current bonus
       const duplicateCode = await db
         .select()
         .from(bonuses)
@@ -330,178 +328,108 @@ export async function PUT(request: NextRequest) {
       updates.code = code.trim();
     }
 
-    // Validate and add type
     if (type !== undefined) {
       if (!isValidBonusType(type)) {
         return NextResponse.json(
-          { 
-            error: `Type must be one of: ${VALID_BONUS_TYPES.join(', ')}`, 
-            code: 'INVALID_TYPE' 
-          },
+          { error: `Type must be one of: ${VALID_BONUS_TYPES.join(', ')}`, code: 'INVALID_TYPE' },
           { status: 400 }
         );
       }
       updates.type = type;
     }
 
-    // Validate and add amount
     if (amount !== undefined) {
       if (typeof amount !== 'number' || amount < 0) {
-        return NextResponse.json(
-          { error: 'Amount must be a non-negative number', code: 'INVALID_AMOUNT' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Amount must be non-negative', code: 'INVALID_AMOUNT' }, { status: 400 });
       }
       updates.amount = amount;
     }
 
-    // Validate and add percentage
     if (percentage !== undefined) {
       if (typeof percentage !== 'number' || percentage < 0 || percentage > 100) {
-        return NextResponse.json(
-          { error: 'Percentage must be a number between 0 and 100', code: 'INVALID_PERCENTAGE' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Percentage must be 0-100', code: 'INVALID_PERCENTAGE' }, { status: 400 });
       }
       updates.percentage = percentage;
     }
 
-    // Validate and add maxAmount
     if (maxAmount !== undefined) {
       if (typeof maxAmount !== 'number' || maxAmount < 0) {
-        return NextResponse.json(
-          { error: 'Max amount must be a non-negative number', code: 'INVALID_MAX_AMOUNT' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Max amount must be non-negative', code: 'INVALID_MAX_AMOUNT' }, { status: 400 });
       }
       updates.maxAmount = maxAmount;
     }
 
-    // Validate and add wageringRequirement
     if (wageringRequirement !== undefined) {
       if (typeof wageringRequirement !== 'number' || wageringRequirement < 0) {
-        return NextResponse.json(
-          { error: 'Wagering requirement must be a non-negative number', code: 'INVALID_WAGERING' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Wagering must be non-negative', code: 'INVALID_WAGERING' }, { status: 400 });
       }
       updates.wageringRequirement = wageringRequirement;
     }
 
-    // Validate and add validFrom
     if (validFrom !== undefined) {
       if (!isValidDateString(validFrom)) {
-        return NextResponse.json(
-          { error: 'validFrom must be a valid date string', code: 'INVALID_VALID_FROM' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'validFrom must be valid', code: 'INVALID_VALID_FROM' }, { status: 400 });
       }
       updates.validFrom = validFrom;
     }
 
-    // Validate and add validUntil
     if (validUntil !== undefined) {
       if (!isValidDateString(validUntil)) {
-        return NextResponse.json(
-          { error: 'validUntil must be a valid date string', code: 'INVALID_VALID_UNTIL' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'validUntil must be valid', code: 'INVALID_VALID_UNTIL' }, { status: 400 });
       }
       updates.validUntil = validUntil;
     }
 
-    // Validate date range if both dates are being updated
+    // Validate date range
     const finalValidFrom = updates.validFrom || existingBonus[0].validFrom;
     const finalValidUntil = updates.validUntil || existingBonus[0].validUntil;
     if (new Date(finalValidFrom) >= new Date(finalValidUntil)) {
-      return NextResponse.json(
-        { error: 'validFrom must be before validUntil', code: 'INVALID_DATE_RANGE' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'validFrom must be before validUntil', code: 'INVALID_DATE_RANGE' }, { status: 400 });
     }
 
-    // Add isActive
     if (isActive !== undefined) {
       if (typeof isActive !== 'boolean') {
-        return NextResponse.json(
-          { error: 'isActive must be a boolean', code: 'INVALID_IS_ACTIVE' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'isActive must be boolean', code: 'INVALID_IS_ACTIVE' }, { status: 400 });
       }
       updates.isActive = isActive;
     }
 
-    // Add description
     if (description !== undefined) {
       updates.description = description?.trim() || null;
     }
 
-    // If no updates provided
-    if (Object.keys(updates).length === 0) {
-      return NextResponse.json(existingBonus[0], { status: 200 });
-    }
+    if (Object.keys(updates).length === 0) return NextResponse.json(existingBonus[0], { status: 200 });
 
-    // Update bonus
-    const updated = await db
-      .update(bonuses)
-      .set(updates)
-      .where(eq(bonuses.id, parseInt(id)))
-      .returning();
+    const updated = await db.update(bonuses).set(updates).where(eq(bonuses.id, parseInt(id))).returning();
 
     return NextResponse.json(updated[0], { status: 200 });
   } catch (error) {
     console.error('PUT error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error: ' + (error as Error).message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error: ' + (error as Error).message }, { status: 500 });
   }
 }
 
+// -------------------- DELETE --------------------
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id || isNaN(parseInt(id))) {
-      return NextResponse.json(
-        { error: 'Valid ID is required', code: 'INVALID_ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Valid ID is required', code: 'INVALID_ID' }, { status: 400 });
     }
 
-    // Check if bonus exists
-    const existingBonus = await db
-      .select()
-      .from(bonuses)
-      .where(eq(bonuses.id, parseInt(id)))
-      .limit(1);
+    const existingBonus = await db.select().from(bonuses).where(eq(bonuses.id, parseInt(id))).limit(1);
 
     if (existingBonus.length === 0) {
-      return NextResponse.json(
-        { error: 'Bonus not found', code: 'BONUS_NOT_FOUND' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Bonus not found', code: 'BONUS_NOT_FOUND' }, { status: 404 });
     }
 
-    // Delete bonus
-    const deleted = await db
-      .delete(bonuses)
-      .where(eq(bonuses.id, parseInt(id)))
-      .returning();
+    const deleted = await db.delete(bonuses).where(eq(bonuses.id, parseInt(id))).returning();
 
-    return NextResponse.json(
-      {
-        message: 'Bonus deleted successfully',
-        bonus: deleted[0],
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: 'Bonus deleted successfully', bonus: deleted[0] }, { status: 200 });
   } catch (error) {
     console.error('DELETE error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error: ' + (error as Error).message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error: ' + (error as Error).message }, { status: 500 });
   }
 }
