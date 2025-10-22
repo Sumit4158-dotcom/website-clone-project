@@ -4,14 +4,14 @@ import { db } from '@/db';
 import { games } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 
+// ✅ Correct type for Next.js 15 App Router
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = context.params;
+  const { id } = await context.params; // ✅ Now compatible with new App Router spec
 
-    // Validate ID
+  try {
     if (!id || isNaN(Number(id))) {
       return NextResponse.json(
         { error: 'Valid game ID is required', code: 'INVALID_ID' },
@@ -21,7 +21,6 @@ export async function GET(
 
     const gameId = Number(id);
 
-    // Fetch game with active filter
     const game = await db
       .select()
       .from(games)
@@ -37,7 +36,6 @@ export async function GET(
 
     const gameRecord = game[0];
 
-    // Increment play count
     await db
       .update(games)
       .set({
