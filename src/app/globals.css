@@ -1,0 +1,192 @@
+/* Updated: 2025-10-08T09:24:11.774Z */
+/* Updated: 2025-09-29T05:21:52.965Z */
+/* Updated: 2025-09-28T22:16:17.187Z */
+/* Updated: 2025-09-28T01:59:28.266Z */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-background: #1a1a1a;
+  --color-foreground: #ffffff;
+
+  --color-card: #2d2d2d;
+  --color-card-foreground: #ffffff;
+
+  --color-popover: #2d2d2d;
+  --color-popover-foreground: #ffffff;
+
+  --color-primary: #00c896;
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: #2d2d2d;
+  --color-secondary-foreground: #ffffff;
+
+  --color-muted: #2d2d2d;
+  --color-muted-foreground: #b3b3b3;
+
+  --color-accent: #00c896;
+  --color-accent-foreground: #ffffff;
+
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+
+  --color-border: #404040;
+  --color-input: #404040;
+  --color-ring: #00c896;
+
+  --color-chart-1: #e67e22;
+  --color-chart-2: #2d8659;
+  --color-chart-3: #1e3a5f;
+  --color-chart-4: #f1c40f;
+  --color-chart-5: #e74c3c;
+
+  --color-sidebar: #252525;
+  --color-sidebar-foreground: #ffffff;
+  --color-sidebar-primary: #00c896;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: #2d2d2d;
+  --color-sidebar-accent-foreground: #ffffff;
+  --color-sidebar-border: #404040;
+  --color-sidebar-ring: #00c896;
+
+  --radius-lg: 0.5rem;
+  --radius-md: calc(0.5rem - 2px);
+  --radius-sm: calc(0.5rem - 4px);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+
+  --font-heading-large: "Poppins", sans-serif;
+  --font-heading-medium: "Poppins", sans-serif;
+  --font-body-regular: "Poppins", sans-serif;
+  --font-button-text: "Poppins", sans-serif;
+  --font-small-text: "Poppins", sans-serif;
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: #404040;
+  }
+}
+
+@layer utilities {
+  body {
+    font-family: var(--font-body-regular);
+  }
+}
+
+@layer base {
+  :root {
+    --background: #1a1a1a;
+    --foreground: #ffffff;
+    --card: #2d2d2d;
+    --card-foreground: #ffffff;
+    --popover: #2d2d2d;
+    --popover-foreground: #ffffff;
+    --primary: #00c896;
+    --primary-foreground: #ffffff;
+    --secondary: #2d2d2d;
+    --secondary-foreground: #ffffff;
+    --muted: #2d2d2d;
+    --muted-foreground: #b3b3b3;
+    --accent: #00c896;
+    --accent-foreground: #ffffff;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #404040;
+    --input: #404040;
+    --ring: #00c896;
+    --chart-1: #e67e22;
+    --chart-2: #2d8659;
+    --chart-3: #1e3a5f;
+    --chart-4: #f1c40f;
+    --chart-5: #e74c3c;
+    --radius: 0.5rem;
+    --sidebar-background: #252525;
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #00c896;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #2d2d2d;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #404040;
+    --sidebar-ring: #00c896;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body-regular);
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  h1 {
+    font-family: var(--font-heading-large);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  h2 {
+    font-family: var(--font-heading-medium);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--foreground);
+  }
+
+  button {
+    font-family: var(--font-button-text);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--primary-foreground);
+  }
+
+  small {
+    font-family: var(--font-small-text);
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--muted-foreground);
+  }
+
+  .container {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Hide Next.js error overlay portal */
+nextjs-portal {
+  display: none !important;
+}
